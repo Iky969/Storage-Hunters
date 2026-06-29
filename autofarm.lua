@@ -1,7 +1,10 @@
 -- Memuat Rayfield Library
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- Membuat Window UI
+-- ==========================================
+-- SETUP WINDOW, DISCORD, & KEY SYSTEM
+-- ==========================================
+-- Di sinilah tempat kamu menambahkan Discord dan Key System
 local Window = Rayfield:CreateWindow({
    Name = "Storage Hunters",
    LoadingTitle = "Memuat Script...",
@@ -10,16 +13,27 @@ local Window = Rayfield:CreateWindow({
       Enabled = false
    },
    Discord = {
-      Enabled = false
+      Enabled = true, -- Ubah menjadi true untuk mengaktifkan
+      Invite = "https://discord.gg/6wvR6AcRS", -- Masukkan kode invite Discord kamu di sini (misal: abcdefg)
+      RememberJoins = true 
    },
-   KeySystem = false
+   KeySystem = true, -- Ubah menjadi true untuk mengaktifkan sistem Key
+   KeySettings = {
+      Title = "Storage Hunters Key",
+      Subtitle = "Masukkan Key untuk mengakses",
+      Note = "Key bisa didapatkan di server Discord kami",
+      FileName = "StorageHuntersKey",
+      SaveKey = true,
+      GrabKeyFromSite = false, -- Ubah ke true jika key kamu taruh di link (misal raw pastebin)
+      Key = {"Reza"} -- Ganti "KeyRahasia123" dengan password/key yang kamu mau
+   }
 })
 
--- Membuat Tab Menu (Hanya 1 Tab agar UI tidak bug)
+-- Membuat Tab Menu
 local Tab = Window:CreateTab("Menu Utama", 4483345998)
 
 -- ==========================================
--- FUNGSI TELEPORT UTAMA (Bisa untuk jalan kaki & di mobil)
+-- FUNGSI TELEPORT UTAMA
 -- ==========================================
 local function teleportTo(targetInstance)
     if not targetInstance then return false end
@@ -53,26 +67,41 @@ end
 -- ==========================================
 Tab:CreateSection("Lokasi & Teleport")
 
+-- Variabel untuk menyimpan pilihan sementara
+local currentSelectedArea = nil
+local currentSelectedNPC = nil
+
+-- Dropdown Area
 Tab:CreateDropdown({
-   Name = "TP ke Area Lelang",
+   Name = "Pilih Area Lelang",
    Options = {"Back Alley", "Farmyard", "Junk Yard", "Shipyard", "Shopping Mall"},
    CurrentOption = {"Pilih Area"},
    MultipleOptions = false,
-   Flag = "TPArea",
+   Flag = "DropdownArea",
    Callback = function(Option)
-       local selectedArea = Option[1]
-       if selectedArea == "Pilih Area" then return end
+       currentSelectedArea = Option[1] -- Hanya menyimpan pilihan, tidak langsung TP
+   end,
+})
+
+-- Tombol Eksekusi TP Area
+Tab:CreateButton({
+   Name = "🚀 Teleport ke Area Terpilih",
+   Callback = function()
+       if not currentSelectedArea or currentSelectedArea == "Pilih Area" then
+           Rayfield:Notify({Title = "Peringatan", Content = "Pilih area terlebih dahulu di menu atas!", Duration = 3})
+           return
+       end
        
        local areasFolder = workspace:FindFirstChild("Areas")
-       if areasFolder and areasFolder:FindFirstChild(selectedArea) then
-           local targetBoundary = areasFolder[selectedArea]:FindFirstChild("AreaBoundary")
+       if areasFolder and areasFolder:FindFirstChild(currentSelectedArea) then
+           local targetBoundary = areasFolder[currentSelectedArea]:FindFirstChild("AreaBoundary")
            if targetBoundary then
                local success = teleportTo(targetBoundary)
                if success then
-                   Rayfield:Notify({Title = "Sukses", Content = "TP ke Area: " .. selectedArea, Duration = 2})
+                   Rayfield:Notify({Title = "Sukses", Content = "TP ke Area: " .. currentSelectedArea, Duration = 2})
                end
            else
-               Rayfield:Notify({Title = "Error", Content = "AreaBoundary tidak ditemukan di " .. selectedArea, Duration = 3})
+               Rayfield:Notify({Title = "Error", Content = "AreaBoundary tidak ditemukan di " .. currentSelectedArea, Duration = 3})
            end
        else
            Rayfield:Notify({Title = "Error", Content = "Folder Area tidak ditemukan!", Duration = 3})
@@ -80,28 +109,43 @@ Tab:CreateDropdown({
    end,
 })
 
+Tab:CreateDivider() -- Garis pemisah agar UI lebih rapi
+
+-- Dropdown NPC
 Tab:CreateDropdown({
-   Name = "TP ke NPC Toko",
+   Name = "Pilih NPC Toko",
    Options = {"Quest NPC", "Barrista", "Car Dealer", "Cleaning Shop", "Fashion", "Fashion Shop", "Grading Shop", "Locksmith", "Repair Shop", "Rick Harrison", "Trailer Seller"},
    CurrentOption = {"Pilih NPC"},
    MultipleOptions = false,
-   Flag = "TPNPC",
+   Flag = "DropdownNPC",
    Callback = function(Option)
-       local selectedNPC = Option[1]
-       if selectedNPC == "Pilih NPC" then return end
+       currentSelectedNPC = Option[1] -- Hanya menyimpan pilihan, tidak langsung TP
+   end,
+})
+
+-- Tombol Eksekusi TP NPC
+Tab:CreateButton({
+   Name = "🚀 Teleport ke NPC Terpilih",
+   Callback = function()
+       if not currentSelectedNPC or currentSelectedNPC == "Pilih NPC" then
+           Rayfield:Notify({Title = "Peringatan", Content = "Pilih NPC terlebih dahulu di menu atas!", Duration = 3})
+           return
+       end
        
        local npcFolder = workspace:FindFirstChild("Mall - Shop NPCs")
-       if npcFolder and npcFolder:FindFirstChild(selectedNPC) then
-           local targetNPC = npcFolder[selectedNPC]
+       if npcFolder and npcFolder:FindFirstChild(currentSelectedNPC) then
+           local targetNPC = npcFolder[currentSelectedNPC]
            local success = teleportTo(targetNPC)
            if success then
-               Rayfield:Notify({Title = "Sukses", Content = "TP ke NPC: " .. selectedNPC, Duration = 2})
+               Rayfield:Notify({Title = "Sukses", Content = "TP ke NPC: " .. currentSelectedNPC, Duration = 2})
            end
        else
-           Rayfield:Notify({Title = "Error", Content = "NPC " .. selectedNPC .. " tidak ditemukan!", Duration = 3})
+           Rayfield:Notify({Title = "Error", Content = "NPC " .. currentSelectedNPC .. " tidak ditemukan!", Duration = 3})
        end
    end,
 })
+
+Tab:CreateDivider()
 
 Tab:CreateButton({
    Name = "Teleport ke Plot 1 (Asphalt Floor)",
@@ -169,10 +213,7 @@ Tab:CreateButton({
                if item:IsA("Model") or item:IsA("BasePart") then
                    local prompt = item:FindFirstChildWhichIsA("ProximityPrompt", true)
                    if prompt then
-                       -- Cukup gunakan fungsi teleportTo ke item tersebut
                        teleportTo(item)
-                       
-                       -- Tunggu sebentar agar server mendaftarkan posisi baru
                        task.wait(0.2)
                        fireproximityprompt(prompt)
                        task.wait(0.1)
@@ -191,7 +232,6 @@ Tab:CreateButton({
    Callback = function()
        local unpackZone = workspace:FindFirstChild("UnpackZone")
        if unpackZone and unpackZone:FindFirstChild("Pad") then
-           -- Langsung teleport ke Pad
            teleportTo(unpackZone.Pad)
            Rayfield:Notify({Title = "Sukses", Content = "Berada di zona Unpack. Silakan bongkar barang.", Duration = 3})
        else
