@@ -1,42 +1,63 @@
--- Memuat Rayfield Library
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
--- ==========================================
--- SETUP WINDOW, DISCORD, & KEY SYSTEM
--- ==========================================
 local Window = Rayfield:CreateWindow({
    Name = "Storage Hunters",
-   LoadingTitle = "Memuat Script...",
-   LoadingSubtitle = "Auto Farm & Teleport",
-   ConfigurationSaving = {
-      Enabled = false
-   },
-   Discord = {
-      Enabled = true, 
-      Invite = "https://discord.gg/6wvR6AcRS", -- Ganti dengan kode invite Discord kamu
-      RememberJoins = true 
-   },
-   KeySystem = true, 
-   KeySettings = {
-      Title = "Storage Hunters Key",
-      Subtitle = "Masukkan Key untuk mengakses",
-      Note = "Key bisa didapatkan di server Discord kami",
-      FileName = "StorageHuntersKey",
-      SaveKey = true,
-      GrabKeyFromSite = false, 
-      Key = {"Reza"} -- Ganti dengan key buatanmu
-   }
+   LoadingTitle = "Loading Script...",
+   LoadingSubtitle = "Auto Farm Hub",
+   ConfigurationSaving = { Enabled = false },
+   Discord = { Enabled = false },
+   KeySystem = false
 })
 
--- Membuat Tab Menu
-local Tab = Window:CreateTab("Menu Utama", 4483345998)
+local Tab = Window:CreateTab("Main Menu", 4483345998)
 
 -- ==========================================
--- FUNGSI TELEPORT UTAMA
+-- FLOATING UI UNTUK AUTO FARM INFO
+-- ==========================================
+local CoreGui = game:GetService("CoreGui")
+local infoUI = Instance.new("ScreenGui")
+infoUI.Name = "AutoFarmTracker"
+infoUI.Parent = CoreGui
+infoUI.Enabled = false
+
+local bgFrame = Instance.new("Frame", infoUI)
+bgFrame.Size = UDim2.new(0, 250, 0, 90)
+bgFrame.Position = UDim2.new(0.5, -125, 0, 20)
+bgFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+bgFrame.BorderSizePixel = 0
+
+local uiCorner = Instance.new("UICorner", bgFrame)
+uiCorner.CornerRadius = UDim.new(0, 8)
+
+local titleLabel = Instance.new("TextLabel", bgFrame)
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.Text = "Auto Farm Active"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 16
+
+local statusLabel = Instance.new("TextLabel", bgFrame)
+statusLabel.Size = UDim2.new(1, -20, 1, -40)
+statusLabel.Position = UDim2.new(0, 10, 0, 35)
+statusLabel.Text = "Status: Idle"
+statusLabel.TextColor3 = Color3.fromRGB(0, 255, 100)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextWrapped = true
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 14
+statusLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+local function updateStatus(text)
+    statusLabel.Text = "Status: " .. text
+end
+
+-- ==========================================
+-- FUNGSI BANTUAN UTAMA
 -- ==========================================
 local function teleportTo(targetInstance)
     if not targetInstance then return false end
-    
     local player = game.Players.LocalPlayer
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -61,12 +82,8 @@ local function teleportTo(targetInstance)
     return false
 end
 
--- ==========================================
--- FUNGSI KENDARAAN (REVISI)
--- ==========================================
 local function autoEnterCar()
     local keiTruck = nil
-    -- Mencari Kei Truck di Workspace (mendukung nama dengan angka/spasi)
     for _, v in pairs(workspace:GetChildren()) do
         if string.find(v.Name, "Kei Truck") then
             keiTruck = v
@@ -81,71 +98,49 @@ local function autoEnterCar()
         local hrp = char:FindFirstChild("HumanoidRootPart")
         local humanoid = char:FindFirstChild("Humanoid")
         
-        -- Pengecekan tambahan agar tidak error jika karakter belum load
         if hrp and humanoid then
             hrp.CFrame = driveSeat.CFrame
-            task.wait(0.1) -- Jeda sebentar agar fisik game mendaftar posisi sebelum duduk
+            task.wait(0.3)
             driveSeat:Sit(humanoid)
-            Rayfield:Notify({Title = "Kendaraan", Content = "Berhasil masuk ke Kei Truck!", Duration = 2})
         end
-    else
-        Rayfield:Notify({Title = "Error", Content = "Kei Truck tidak ditemukan di map!", Duration = 2})
     end
 end
 
 -- ==========================================
--- BAGIAN 1: MENU TELEPORT
+-- BAGIAN 1: MENU LOKASI & TELEPORT MANUAL
 -- ==========================================
-Tab:CreateSection("Lokasi & Teleport")
+Tab:CreateSection("Locations & Teleport")
 
 local currentSelectedArea = nil
 local currentSelectedNPC = nil
 
--- Dropdown Area
 Tab:CreateDropdown({
-   Name = "Pilih Area Lelang",
+   Name = "Select Teleport Area",
    Options = {"Back Alley", "Farmyard", "Junk Yard", "Shipyard", "Shopping Mall"},
-   CurrentOption = {"Pilih Area"},
+   CurrentOption = {"Select Area"},
    MultipleOptions = false,
-   Flag = "DropdownArea",
+   Flag = "DropdownTPArea",
    Callback = function(Option)
        currentSelectedArea = Option[1] 
    end,
 })
 
--- Tombol Eksekusi TP Area
 Tab:CreateButton({
-   Name = "🚀 Teleport ke Area Terpilih",
+   Name = "Teleport to Area",
    Callback = function()
-       if not currentSelectedArea or currentSelectedArea == "Pilih Area" then
-           Rayfield:Notify({Title = "Peringatan", Content = "Pilih area terlebih dahulu di menu atas!", Duration = 3})
-           return
-       end
-       
+       if not currentSelectedArea or currentSelectedArea == "Select Area" then return end
        local areasFolder = workspace:FindFirstChild("Areas")
        if areasFolder and areasFolder:FindFirstChild(currentSelectedArea) then
            local targetBoundary = areasFolder[currentSelectedArea]:FindFirstChild("AreaBoundary")
-           if targetBoundary then
-               local success = teleportTo(targetBoundary)
-               if success then
-                   Rayfield:Notify({Title = "Sukses", Content = "TP ke Area: " .. currentSelectedArea, Duration = 2})
-               end
-           else
-               Rayfield:Notify({Title = "Error", Content = "AreaBoundary tidak ditemukan di " .. currentSelectedArea, Duration = 3})
-           end
-       else
-           Rayfield:Notify({Title = "Error", Content = "Folder Area tidak ditemukan!", Duration = 3})
+           teleportTo(targetBoundary)
        end
    end,
 })
 
-Tab:CreateDivider()
-
--- Dropdown NPC
 Tab:CreateDropdown({
-   Name = "Pilih NPC Toko",
+   Name = "Select Shop NPC",
    Options = {"Quest NPC", "Barrista", "Car Dealer", "Cleaning Shop", "Fashion", "Fashion Shop", "Grading Shop", "Locksmith", "Repair Shop", "Rick Harrison", "Trailer Seller"},
-   CurrentOption = {"Pilih NPC"},
+   CurrentOption = {"Select NPC"},
    MultipleOptions = false,
    Flag = "DropdownNPC",
    Callback = function(Option)
@@ -153,127 +148,289 @@ Tab:CreateDropdown({
    end,
 })
 
--- Tombol Eksekusi TP NPC
 Tab:CreateButton({
-   Name = "🚀 Teleport ke NPC Terpilih",
+   Name = "Teleport to NPC",
    Callback = function()
-       if not currentSelectedNPC or currentSelectedNPC == "Pilih NPC" then
-           Rayfield:Notify({Title = "Peringatan", Content = "Pilih NPC terlebih dahulu di menu atas!", Duration = 3})
-           return
-       end
-       
+       if not currentSelectedNPC or currentSelectedNPC == "Select NPC" then return end
        local npcFolder = workspace:FindFirstChild("Mall - Shop NPCs")
        if npcFolder and npcFolder:FindFirstChild(currentSelectedNPC) then
-           local targetNPC = npcFolder[currentSelectedNPC]
-           local success = teleportTo(targetNPC)
-           if success then
-               Rayfield:Notify({Title = "Sukses", Content = "TP ke NPC: " .. currentSelectedNPC, Duration = 2})
-           end
-       else
-           Rayfield:Notify({Title = "Error", Content = "NPC " .. currentSelectedNPC .. " tidak ditemukan!", Duration = 3})
+           teleportTo(npcFolder[currentSelectedNPC])
        end
    end,
 })
 
-Tab:CreateDivider()
-
 Tab:CreateButton({
-   Name = "Teleport ke Plot 1 (Asphalt Floor)",
+   Name = "TP to Plot 1",
    Callback = function()
        local plotFolder = workspace:FindFirstChild("_Plots")
        if plotFolder and plotFolder:FindFirstChild("Plot1") then
            local structures = plotFolder.Plot1:FindFirstChild("Structures")
            if structures and structures:FindFirstChild("Asphalt Floor") then
-               local targetFloor = structures["Asphalt Floor"]
-               local success = teleportTo(targetFloor)
-               if success then
-                   Rayfield:Notify({Title = "Sukses", Content = "Berhasil TP ke Asphalt Floor (Plot 1)", Duration = 2})
-               end
-           else
-               Rayfield:Notify({Title = "Error", Content = "Asphalt Floor tidak ditemukan!", Duration = 3})
+               teleportTo(structures["Asphalt Floor"])
            end
-       else
-           Rayfield:Notify({Title = "Error", Content = "Folder _Plots/Plot1 tidak ditemukan!", Duration = 3})
        end
    end,
 })
 
--- Tombol Auto Masuk Truk (Dimasukkan di bawah Plot 1)
-Tab:CreateButton({
-   Name = "Auto Masuk Kei Truck",
-   Callback = function()
-       autoEnterCar()
+-- ==========================================
+-- BAGIAN 2: AUTO FARM SYSTEM
+-- ==========================================
+Tab:CreateSection("Auto Farm System")
+
+local isAutoFarming = false
+local farmAreaTarget = nil
+
+Tab:CreateDropdown({
+   Name = "Select Farm Area",
+   Options = {"Back Alley", "Farmyard", "Junk Yard", "Shipyard", "Shopping Mall"},
+   CurrentOption = {"Select Area"},
+   MultipleOptions = false,
+   Flag = "DropdownFarmArea",
+   Callback = function(Option)
+       farmAreaTarget = Option[1] 
    end,
 })
 
--- ==========================================
--- BAGIAN 2: MENU AUTO FARM
--- ==========================================
-Tab:CreateSection("Auto Farm Lelang")
-
-local getAutoBid = false
 Tab:CreateToggle({
-   Name = "Auto Bid Lelang",
+   Name = "Auto Farm Info UI",
    CurrentValue = false,
-   Flag = "AutoBidToggle",
+   Flag = "TrackerToggle",
    Callback = function(Value)
-       getAutoBid = Value
-       if getAutoBid then
-           Rayfield:Notify({Title = "Auto Bid", Content = "Auto Bid DIAKTIFKAN", Duration = 2})
+       infoUI.Enabled = Value
+   end,
+})
+
+Tab:CreateToggle({
+   Name = "Start Auto Farm",
+   CurrentValue = false,
+   Flag = "AutoFarmToggle",
+   Callback = function(Value)
+       isAutoFarming = Value
+       
+       if isAutoFarming then
            task.spawn(function()
-               while getAutoBid do
+               while isAutoFarming do
+                   if not farmAreaTarget or farmAreaTarget == "Select Area" then
+                       updateStatus("Waiting for Farm Area selection...")
+                       task.wait(1)
+                       continue
+                   end
+                   
+                   -- 1. Masuk Kendaraan (Awal)
+                   updateStatus("(get in the vehicle)")
+                   autoEnterCar()
+                   task.wait(3.5) -- Waktu tunggu ditingkatkan agar server sync
+                   
+                   if not isAutoFarming then break end
+                   
+                   -- 2. Pergi ke Area
+                   updateStatus("(moving to " .. farmAreaTarget .. ")")
+                   local areasFolder = workspace:FindFirstChild("Areas")
+                   if areasFolder and areasFolder:FindFirstChild(farmAreaTarget) then
+                       local targetBoundary = areasFolder[farmAreaTarget]:FindFirstChild("AreaBoundary")
+                       teleportTo(targetBoundary)
+                       task.wait(2)
+                   end
+                   
+                   if not isAutoFarming then break end
+                   
+                   -- 3. Keluar dari Kendaraan
+                   updateStatus("(exiting vehicle)")
+                   local player = game.Players.LocalPlayer
+                   local char = player.Character or player.CharacterAdded:Wait()
+                   if char and char:FindFirstChild("Humanoid") then
+                       char.Humanoid.Sit = false
+                   end
+                   task.wait(1.5)
+                   
+                   -- 4. Cari Garasi Terdekat (Fix Bug Model Position)
+                   updateStatus("(finding nearest garage)")
+                   local hrp = char:FindFirstChild("HumanoidRootPart")
+                   if not hrp then task.wait(1); continue end
+                   
+                   local closestGarage = nil
+                   local closestPrompt = nil
+                   local minDistance = math.huge
+                   local debris = workspace:FindFirstChild("_Debris")
+                   
+                   if debris and debris:FindFirstChild("Garages") then
+                       for _, garage in pairs(debris.Garages:GetChildren()) do
+                           local entry = garage:FindFirstChild("EntrySquare")
+                           if entry then
+                               local prompt = entry:FindFirstChildWhichIsA("ProximityPrompt", true)
+                               if prompt and prompt.Enabled then
+                                   local entryPos = entry:IsA("Model") and entry:GetPivot().Position or entry.Position
+                                   local dist = (entryPos - hrp.Position).Magnitude
+                                   
+                                   if dist < minDistance then
+                                       minDistance = dist
+                                       closestGarage = entry
+                                       closestPrompt = prompt
+                                   end
+                               end
+                           end
+                       end
+                   end
+                   
+                   if not isAutoFarming then break end
+                   
+                   -- 5. Interaksi Garasi (Start Bid)
+                   if closestGarage and closestPrompt then
+                       teleportTo(closestGarage)
+                       task.wait(1)
+                       
+                       updateStatus("(start bid)")
+                       closestPrompt.RequiresLineOfSight = false
+                       closestPrompt.MaxActivationDistance = 50
+                       fireproximityprompt(closestPrompt)
+                       task.wait(2)
+                       
+                       if not isAutoFarming then break end
+                       
+                       -- 6. Auto Bid & Tunggu Item Keluar
+                       updateStatus("(auto bid)")
+                       local bidTimer = 0
+                       local closestGaragePos = closestGarage:IsA("Model") and closestGarage:GetPivot().Position or closestGarage.Position
+                       
+                       while isAutoFarming do
+                           pcall(function()
+                               game:GetService("ReplicatedStorage").Events.Auction.Bid:FireServer()
+                           end)
+                           task.wait(0.2)
+                           bidTimer = bidTimer + 0.2
+                           
+                           local hasItems = false
+                           local carryables = workspace:FindFirstChild("_Carryables")
+                           if carryables then
+                               for _, item in pairs(carryables:GetChildren()) do
+                                   local itemPos = item:IsA("Model") and item:GetPivot().Position or item.Position
+                                   if (itemPos - closestGaragePos).Magnitude < 100 then
+                                       hasItems = true
+                                       break
+                                   end
+                               end
+                           end
+                           
+                           if hasItems or bidTimer > 60 then
+                               break
+                           end
+                       end
+                       
+                       if not isAutoFarming then break end
+                       
+                       -- 7. Collect Items (Diulang 5x untuk sapu bersih)
+                       updateStatus("(collect item)")
+                       for collectPass = 1, 5 do
+                           if not isAutoFarming then break end
+                           
+                           local carryables = workspace:FindFirstChild("_Carryables")
+                           if carryables then
+                               for _, item in pairs(carryables:GetChildren()) do
+                                   if not isAutoFarming then break end
+                                   
+                                   local itemPos = item:IsA("Model") and item:GetPivot().Position or item.Position
+                                   if (itemPos - closestGaragePos).Magnitude < 100 then
+                                       local itemPrompt = item:FindFirstChildWhichIsA("ProximityPrompt", true)
+                                       if itemPrompt then
+                                           teleportTo(item)
+                                           task.wait(0.3)
+                                           itemPrompt.RequiresLineOfSight = false
+                                           fireproximityprompt(itemPrompt)
+                                           task.wait(0.2)
+                                       end
+                                   end
+                               end
+                           end
+                           task.wait(0.5) -- Jeda pendek antar loop sapu bersih
+                       end
+                       
+                       if not isAutoFarming then break end
+                       
+                       -- 8. Masuk Kendaraan Lagi
+                       updateStatus("(get in the vehicle)")
+                       autoEnterCar()
+                       task.wait(3.5) -- Jeda ekstra agar mobil ikut ter-teleport dengan aman
+                       
+                       if not isAutoFarming then break end
+                       
+                       -- 9. Pergi ke Base (Unpack Zone)
+                       updateStatus("(go unpackzone)")
+                       local unpackZone = workspace:FindFirstChild("UnpackZone")
+                       if unpackZone and unpackZone:FindFirstChild("Pad") then
+                           teleportTo(unpackZone.Pad)
+                       end
+                       
+                       updateStatus("Unpacking... Restarting loop in 5s")
+                       task.wait(5)
+                   else
+                       updateStatus("No active garage found. Retrying in 3s...")
+                       task.wait(3)
+                   end
+               end
+           end)
+       else
+           updateStatus("Idle")
+       end
+   end,
+})
+
+Tab:CreateDivider()
+Tab:CreateLabel("Manual Tools (Optional)")
+
+local getManualBid = false
+Tab:CreateToggle({
+   Name = "Manual Auto Bid",
+   CurrentValue = false,
+   Flag = "ManualBidToggle",
+   Callback = function(Value)
+       getManualBid = Value
+       if getManualBid then
+           task.spawn(function()
+               while getManualBid do
                    task.wait(0.1)
                    pcall(function()
                        game:GetService("ReplicatedStorage").Events.Auction.Bid:FireServer()
                    end)
                end
            end)
-       else
-           Rayfield:Notify({Title = "Auto Bid", Content = "Auto Bid DIMATIKAN", Duration = 2})
        end
    end,
 })
 
 Tab:CreateButton({
-   Name = "Auto Collect Hasil Lelang",
+   Name = "Auto Collect Items",
    Callback = function()
        local carryables = workspace:FindFirstChild("_Carryables")
        if carryables then
-           local items = carryables:GetChildren()
-           if #items == 0 then
-               Rayfield:Notify({Title = "Info", Content = "Tidak ada barang di area ini.", Duration = 2})
-               return
-           end
-           
-           Rayfield:Notify({Title = "Auto Collect", Content = "Mengambil " .. #items .. " barang...", Duration = 2})
-           
-           for _, item in pairs(items) do
+           for _, item in pairs(carryables:GetChildren()) do
                if item:IsA("Model") or item:IsA("BasePart") then
                    local prompt = item:FindFirstChildWhichIsA("ProximityPrompt", true)
                    if prompt then
                        teleportTo(item)
                        task.wait(0.2)
+                       prompt.RequiresLineOfSight = false
                        fireproximityprompt(prompt)
                        task.wait(0.1)
                    end
                end
            end
-           Rayfield:Notify({Title = "Selesai", Content = "Semua barang berhasil dikumpulkan!", Duration = 2})
-       else
-           Rayfield:Notify({Title = "Error", Content = "Folder _Carryables tidak ditemukan.", Duration = 3})
        end
    end,
 })
 
 Tab:CreateButton({
-   Name = "TP ke Base (Unpack Zone)",
+   Name = "Enter Vehicle",
+   Callback = function()
+       autoEnterCar()
+   end,
+})
+
+Tab:CreateButton({
+   Name = "TP to Unpack Zone",
    Callback = function()
        local unpackZone = workspace:FindFirstChild("UnpackZone")
        if unpackZone and unpackZone:FindFirstChild("Pad") then
            teleportTo(unpackZone.Pad)
-           Rayfield:Notify({Title = "Sukses", Content = "Berada di zona Unpack. Silakan bongkar barang.", Duration = 3})
-       else
-           Rayfield:Notify({Title = "Error", Content = "UnpackZone / Pad tidak ditemukan!", Duration = 3})
        end
    end,
 })
