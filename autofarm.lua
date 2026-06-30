@@ -4,7 +4,6 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- ==========================================
 -- SETUP WINDOW, DISCORD, & KEY SYSTEM
 -- ==========================================
--- Di sinilah tempat kamu menambahkan Discord dan Key System
 local Window = Rayfield:CreateWindow({
    Name = "Storage Hunters",
    LoadingTitle = "Memuat Script...",
@@ -13,19 +12,19 @@ local Window = Rayfield:CreateWindow({
       Enabled = false
    },
    Discord = {
-      Enabled = true, -- Ubah menjadi true untuk mengaktifkan
-      Invite = "https://discord.gg/6wvR6AcRS", -- Masukkan kode invite Discord kamu di sini (misal: abcdefg)
+      Enabled = true, 
+      Invite = "https://discord.gg/6wvR6AcRS", -- Ganti dengan kode invite Discord kamu
       RememberJoins = true 
    },
-   KeySystem = true, -- Ubah menjadi true untuk mengaktifkan sistem Key
+   KeySystem = true, 
    KeySettings = {
       Title = "Storage Hunters Key",
       Subtitle = "Masukkan Key untuk mengakses",
       Note = "Key bisa didapatkan di server Discord kami",
       FileName = "StorageHuntersKey",
       SaveKey = true,
-      GrabKeyFromSite = false, -- Ubah ke true jika key kamu taruh di link (misal raw pastebin)
-      Key = {"Reza"} -- Ganti "KeyRahasia123" dengan password/key yang kamu mau
+      GrabKeyFromSite = false, 
+      Key = {"Reza"} -- Ganti dengan key buatanmu
    }
 })
 
@@ -63,11 +62,42 @@ local function teleportTo(targetInstance)
 end
 
 -- ==========================================
+-- FUNGSI KENDARAAN (REVISI)
+-- ==========================================
+local function autoEnterCar()
+    local keiTruck = nil
+    -- Mencari Kei Truck di Workspace (mendukung nama dengan angka/spasi)
+    for _, v in pairs(workspace:GetChildren()) do
+        if string.find(v.Name, "Kei Truck") then
+            keiTruck = v
+            break
+        end
+    end
+    
+    if keiTruck and keiTruck:FindFirstChild("DriveSeat") then
+        local driveSeat = keiTruck.DriveSeat
+        local player = game.Players.LocalPlayer
+        local char = player.Character or player.CharacterAdded:Wait()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChild("Humanoid")
+        
+        -- Pengecekan tambahan agar tidak error jika karakter belum load
+        if hrp and humanoid then
+            hrp.CFrame = driveSeat.CFrame
+            task.wait(0.1) -- Jeda sebentar agar fisik game mendaftar posisi sebelum duduk
+            driveSeat:Sit(humanoid)
+            Rayfield:Notify({Title = "Kendaraan", Content = "Berhasil masuk ke Kei Truck!", Duration = 2})
+        end
+    else
+        Rayfield:Notify({Title = "Error", Content = "Kei Truck tidak ditemukan di map!", Duration = 2})
+    end
+end
+
+-- ==========================================
 -- BAGIAN 1: MENU TELEPORT
 -- ==========================================
 Tab:CreateSection("Lokasi & Teleport")
 
--- Variabel untuk menyimpan pilihan sementara
 local currentSelectedArea = nil
 local currentSelectedNPC = nil
 
@@ -79,7 +109,7 @@ Tab:CreateDropdown({
    MultipleOptions = false,
    Flag = "DropdownArea",
    Callback = function(Option)
-       currentSelectedArea = Option[1] -- Hanya menyimpan pilihan, tidak langsung TP
+       currentSelectedArea = Option[1] 
    end,
 })
 
@@ -109,7 +139,7 @@ Tab:CreateButton({
    end,
 })
 
-Tab:CreateDivider() -- Garis pemisah agar UI lebih rapi
+Tab:CreateDivider()
 
 -- Dropdown NPC
 Tab:CreateDropdown({
@@ -119,7 +149,7 @@ Tab:CreateDropdown({
    MultipleOptions = false,
    Flag = "DropdownNPC",
    Callback = function(Option)
-       currentSelectedNPC = Option[1] -- Hanya menyimpan pilihan, tidak langsung TP
+       currentSelectedNPC = Option[1] 
    end,
 })
 
@@ -165,6 +195,14 @@ Tab:CreateButton({
        else
            Rayfield:Notify({Title = "Error", Content = "Folder _Plots/Plot1 tidak ditemukan!", Duration = 3})
        end
+   end,
+})
+
+-- Tombol Auto Masuk Truk (Dimasukkan di bawah Plot 1)
+Tab:CreateButton({
+   Name = "Auto Masuk Kei Truck",
+   Callback = function()
+       autoEnterCar()
    end,
 })
 
